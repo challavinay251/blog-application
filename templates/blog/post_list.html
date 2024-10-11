@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2>Blog Posts</h2>
+
+  {% for post in posts %}
+    <div class="post-item">
+      <!-- Thumbnail for post image -->
+      {% if post.image %}
+        <div class="post-image">
+          <img src="{{ post.image.url }}" alt="Image for {{ post.title }}" style="max-width: 150px; height: auto;">
+        </div>
+      {% endif %}
+
+      <!-- Post title and details -->
+      <div class="post-details">
+        <h3><a href="{% url 'post-detail' post.pk %}">{{ post.title }}</a></h3>
+        <p>By {{ post.author }} on {{ post.date_posted }}</p>
+        <p>{{ post.content|slice:":200" }}... <a href="{% url 'post-detail' post.pk %}">Read more</a></p>
+      </div>
+
+      <!-- Post metadata -->
+      <div class="post-meta">
+        <p>Likes: {{ post.total_likes }}</p>
+        <p>Comments: {{ post.comments.count }}</p>
+      </div>
+
+      <hr>
+    </div>
+  {% empty %}
+    <p>No posts available.</p>
+  {% endfor %}
+
+  <!-- Pagination -->
+  <div class="pagination">
+    <span class="step-links">
+      {% if posts.has_previous %}
+        <a href="?page=1">&laquo; first</a>
+        <a href="?page={{ posts.previous_page_number }}">previous</a>
+      {% endif %}
+
+      <span class="current">
+        Page {{ posts.number }} of {{ posts.paginator.num_pages }}.
+      </span>
+
+      {% if posts.has_next %}
+        <a href="?page={{ posts.next_page_number }}">next</a>
+        <a href="?page={{ posts.paginator.num_pages }}">last &raquo;</a>
+      {% endif %}
+    </span>
+  </div>
+
+{% endblock %}
+

@@ -1,0 +1,284 @@
+{#{% extends 'base.html' %}#}
+{##}
+{#{% block content %}#}
+{#<h2>{{ post.title }}</h2>#}
+{#<p>By {{ post.author }} on {{ post.date_posted }}</p>#}
+{#<p>{{ post.content }}</p>#}
+{##}
+{#<!-- Display the image if uploaded -->#}
+{#{% if post.image %}#}
+{#    <img src="{{ post.image.url }}" alt="Post Image" style="max-width: 100%; height: auto;">#}
+{#{% endif %}#}
+{##}
+{#<!-- Display the video if uploaded -->#}
+{#{% if post.video %}#}
+{#    <div>#}
+{#        <video width="320" height="240" controls>#}
+{#            <source src="{{ post.video.url }}" type="video/mp4">#}
+{#            Your browser does not support the video tag.#}
+{#        </video>#}
+{#    </div>#}
+{#{% endif %}#}
+{##}
+{#<hr>#}
+{##}
+{#<!-- Like button -->#}
+{#<form method="POST" action="{% url 'like-post' post.pk %}">#}
+{#    {% csrf_token %}#}
+{#    {% if user in post.likes.all %}#}
+{#        <button type="submit">Unlike</button>#}
+{#    {% else %}#}
+{#        <button type="submit">Like</button>#}
+{#    {% endif %}#}
+{#</form>#}
+{##}
+{#<p>Likes: {{ post.total_likes }}</p>#}
+{##}
+{#<!-- Share options -->#}
+{#<div>#}
+{#    <h3>Share this post:</h3>#}
+{#    <a href="https://twitter.com/intent/tweet?text={{ post.title }}&url={{ request.build_absolute_uri }}">Share on Twitter</a> |#}
+{#    <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri }}">Share on Facebook</a> |#}
+{#    <a href="mailto:?subject=Check out this post&body={{ post.title }}: {{ request.build_absolute_uri }}">Share via Email</a> |#}
+{#    <button onclick="copyToClipboard('{{ request.build_absolute_uri }}')">Copy Link</button>#}
+{#</div>#}
+{##}
+{#<script>#}
+{#    function copyToClipboard(text) {#}
+{#        navigator.clipboard.writeText(text).then(function() {#}
+{#            alert('Link copied to clipboard!');#}
+{#        });#}
+{#    }#}
+{#</script>#}
+{##}
+{#<hr>#}
+{##}
+{#<!-- Display comments -->#}
+{#<h3>Comments</h3>#}
+{#<ul>#}
+{#    {% for comment in post.comments.all %}#}
+{#      <li>#}
+{#        <strong>{{ comment.author }}:</strong> {{ comment.content }} <small>{{ comment.date_posted }}</small>#}
+{##}
+{#        <!-- Like Comment -->#}
+{#        <form method="POST" action="{% url 'like_comment' comment.id %}">#}
+{#            {% csrf_token %}#}
+{#            {% if user in comment.likes.all %}#}
+{#                <button type="submit">Unlike Comment</button>#}
+{#            {% else %}#}
+{#                <button type="submit">Like Comment</button>#}
+{#            {% endif %}#}
+{#        </form>#}
+{#        <p>Comment Likes: {{ comment.total_likes }}</p>#}
+{##}
+{#        <!-- Replies to this comment -->#}
+{#        {% if comment.replies.all %}#}
+{#            <ul>#}
+{#                {% for reply in comment.replies.all %}#}
+{#                    <li><strong>{{ reply.author }}:</strong> {{ reply.content }} <small>{{ reply.date_posted }}</small></li>#}
+{#                {% endfor %}#}
+{#            </ul>#}
+{#        {% endif %}#}
+{##}
+{#        <!-- Reply Form -->#}
+{#        <h4>Reply to this comment:</h4>#}
+{#        <form method="POST" action="{% url 'reply_comment' comment.id %}">#}
+{#            {% csrf_token %}#}
+{#            {{ reply_form.as_p }}#}
+{#            <input type="hidden" name="comment_id" value="{{ comment.id }}">#}
+{#            <button type="submit">Reply</button>#}
+{#        </form>#}
+{#      </li>#}
+{#    {% empty %}#}
+{#      <p>No comments yet. Be the first to comment!</p>#}
+{#    {% endfor %}#}
+{#</ul>#}
+{##}
+{#<hr>#}
+{##}
+{#<!-- Comments form -->#}
+{#<h4>Leave a comment:</h4>#}
+{#<form method="POST" action="{% url 'add-comment' post.pk %}">#}
+{#    {% csrf_token %}#}
+{#    {{ comment_form.as_p }}#}
+{#    <button type="submit">Submit Comment</button>#}
+{#</form>#}
+{##}
+{#{% endblock %}#}
+{% extends 'base.html' %}
+
+{% block content %}
+    <style>
+        /* Main post styling */
+        .post-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+
+        .post-container img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #333;
+        }
+
+        p {
+            font-size: 1rem;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* Like button styling */
+        .like-button {
+            margin-top: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .like-button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Share options */
+        .share-options a {
+            text-decoration: none;
+            color: #007bff;
+            margin-right: 10px;
+            font-size: 1rem;
+        }
+
+        .share-options a:hover {
+            color: #0056b3;
+        }
+
+        .copy-link-button {
+            background-color: #f39c12;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .copy-link-button:hover {
+            background-color: #e67e22;
+        }
+    </style>
+
+    <div class="post-container">
+        <h2>{{ post.title }}</h2>
+        <p>By {{ post.author }} on {{ post.date_posted }}</p>
+        <p>{{ post.content }}</p>
+
+        <!-- Display the image if uploaded -->
+        {% if post.image %}
+            <img src="{{ post.image.url }}" alt="Post Image">
+        {% endif %}
+
+        <!-- Display the video if uploaded -->
+        {% if post.video %}
+            <div>
+                <video width="320" height="240" controls>
+                    <source src="{{ post.video.url }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+        {% endif %}
+
+        <hr>
+
+        <!-- Like button -->
+        <form method="POST" action="{% url 'like-post' post.pk %}">
+            {% csrf_token %}
+            {% if user in post.likes.all %}
+                <button type="submit" class="like-button">Unlike</button>
+            {% else %}
+                <button type="submit" class="like-button">Like</button>
+            {% endif %}
+        </form>
+
+        <p>Likes: {{ post.total_likes }}</p>
+
+        <!-- Share options -->
+        <div class="share-options">
+            <h3>Share this post:</h3>
+            <a href="https://twitter.com/intent/tweet?text={{ post.title }}&url={{ request.build_absolute_uri }}">Share on Twitter</a> |
+            <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri }}">Share on Facebook</a> |
+            <a href="mailto:?subject=Check out this post&body={{ post.title }}: {{ request.build_absolute_uri }}">Share via Email</a> |
+            <button class="copy-link-button" onclick="copyToClipboard('{{ request.build_absolute_uri }}')">Copy Link</button>
+        </div>
+
+        <script>
+            function copyToClipboard(text) {
+                navigator.clipboard.writeText(text).then(function() {
+                    alert('Link copied to clipboard!');
+                });
+            }
+        </script>
+
+        <hr>
+
+        <!-- Display comments -->
+        <h3>Comments</h3>
+        <ul>
+            {% for comment in post.comments.all %}
+                <li>
+                    <strong>{{ comment.author }}:</strong> {{ comment.content }} <small>{{ comment.date_posted }}</small>
+
+                    <!-- Like Comment -->
+                    <form method="POST" action="{% url 'like_comment' comment.id %}">
+                        {% csrf_token %}
+                        {% if user in comment.likes.all %}
+                            <button type="submit">Unlike Comment</button>
+                        {% else %}
+                            <button type="submit">Like Comment</button>
+                        {% endif %}
+                    </form>
+                    <p>Comment Likes: {{ comment.total_likes }}</p>
+
+                    <!-- Replies to this comment -->
+                    {% if comment.replies.all %}
+                        <ul>
+                            {% for reply in comment.replies.all %}
+                                <li><strong>{{ reply.author }}:</strong> {{ reply.content }} <small>{{ reply.date_posted }}</small></li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+
+                    <!-- Reply Form -->
+                    <h4>Reply to this comment:</h4>
+                    <form method="POST" action="{% url 'reply_comment' comment.id %}">
+                        {% csrf_token %}
+                        {{ reply_form.as_p }}
+                        <input type="hidden" name="comment_id" value="{{ comment.id }}">
+                        <button type="submit">Reply</button>
+                    </form>
+                </li>
+            {% empty %}
+                <p>No comments yet. Be the first to comment!</p>
+            {% endfor %}
+        </ul>
+
+        <hr>
+
+        <!-- Comments form -->
+        <h4>Leave a comment:</h4>
+        <form method="POST" action="{% url 'add-comment' post.pk %}">
+            {% csrf_token %}
+            {{ comment_form.as_p }}
+            <button type="submit" class="like-button">Submit Comment</button>
+        </form>
+    </div>
+{% endblock %}
